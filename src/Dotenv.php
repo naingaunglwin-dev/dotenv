@@ -62,13 +62,17 @@ class Dotenv
      *
      * @param string $key The key (variable name) to set or update.
      * @param mixed $value The value to assign to the variable.
-     * @param bool $overwrite If true, the variable will be updated if it exists, otherwise it won't be updated.
+     * @param bool|null $overwrite If true, the variable will be updated if it exists, otherwise it won't be updated.
      *
      * @return void
      */
-    public function set(string $key, mixed $value, bool $overwrite = false): void
+    public function set(string $key, mixed $value, bool $overwrite = null): void
     {
-        $this->store([$key, $value], $overwrite);
+        if ($overwrite === null) {
+            $overwrite = false;
+        }
+
+        $this->store([$key => $value], $overwrite);
 
         $this->updateGlobalEnv();
     }
@@ -143,11 +147,15 @@ class Dotenv
      * Store and update the environment variables.
      *
      * @param array $vars An array of variables to store.
-     * @param bool $overwrite
+     * @param bool|null $overwrite
      * @return void
      */
-    private function store(array $vars, bool $overwrite = false): void
+    private function store(array $vars, bool $overwrite = null): void
     {
+        if ($overwrite === null) {
+            $overwrite = false;
+        }
+
         foreach ($vars as $name => $value) {
             if ($this->match($name)) {
                 if ($overwrite) {
