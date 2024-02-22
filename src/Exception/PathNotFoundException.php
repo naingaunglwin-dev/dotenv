@@ -1,6 +1,6 @@
 <?php
 
-namespace Nal\Dotenv\Exception;
+namespace NAL\Dotenv\Exception;
 
 use InvalidArgumentException;
 
