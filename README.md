@@ -1,8 +1,9 @@
 <div align="center">
 
 # Simple Dotenv Library
-![Status](https://img.shields.io/badge/status-development-blue)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/test-pass-green)
+![Status](https://img.shields.io/badge/coverage-100%25-green)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 </div>
 
@@ -22,20 +23,19 @@
 - Add this to `composer.json`
 ```php
 {
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/naingaunglwin-dev/dotenv"
-    }
-  ],
   "require": {
-    "naingaunglwin-dev/dotenv": "dev-master"
+    "naingaunglwin-dev/dotenv": "^1.0"
   }
 }
 ```
 - Run the following command in your terminal from the project's root directory:
 ```bash
 composer install
+```
+
+If you already have `composer.json` file in your project, just run this command in your terminal,
+```bash
+composer require naingaunglwin-dev/dotenv
 ```
 
 ## Usage

@@ -83,7 +83,7 @@ class Dotenv
      * @param array|null $default An array of default variables.
      * @return void
      */
-    public function restart(array $default = null)
+    public function restart(array $default = null): void
     {
         $this->local = [];
 
@@ -104,12 +104,8 @@ class Dotenv
      */
     private function load(string $file): void
     {
-        if (!file_exists($file)) {
-            throw new PathNotFoundException("File not found : $file");
-        }
-
-        if (!is_file($file)) {
-            throw new PathNotFoundException("Not a valid file: $file");
+        if (!file_exists($file) || !is_file($file)) {
+            throw new \NAL\Dotenv\Exception\PathNotFoundException("File not found or Not a valid file: $file");
         }
 
         $array = file($file);
@@ -120,10 +116,6 @@ class Dotenv
             $content = trim($content);
 
             if (str_contains($content, '#')) {
-                continue;
-            }
-
-            if (empty($content)) {
                 continue;
             }
 
@@ -194,7 +186,7 @@ class Dotenv
 
         foreach ($array as $name => $value) {
             if (!preg_match('/^[a-zA-Z_][a-zA-Z_.]*$/', $name)) {
-                throw new NotAllowVarnameFormat("Var name $name doesn't match with allowed Var name pattern");
+                throw new \NAL\Dotenv\Exception\NotAllowVarnameFormat("Var name $name doesn't match with allowed Var name pattern");
             }
         }
 
