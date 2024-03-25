@@ -49,7 +49,7 @@ BASE_URL="https://example.com/my_url"
 ```php
 <?php
 
-require_once "vendor/autoload.php";;
+require_once "vendor/autoload.php";
 
 use NAL\Dotenv\Dotenv;
 
@@ -65,4 +65,23 @@ $dotenv->get('BASE_URL'); //"https://example.com/my_url"
 // Restart your dotenv process,
 // you can pass default values with restart process,
 $dotenv->restart(['LOCALE' => 'en']);
+```
+
+- **Available Only In Version 1.0.1 (Review CHANGELOG.md for more changes)**
+
+```php
+// if you set your environment variables in group like this,
+APP_URL='https://example.com/'
+APP_KEY=1234567
+
+// You can use `getInGroup` method to retrieve all of that same group variables,
+$dotenv->getInGroup('APP');
+
+// Output
+array(2) {
+    [0] =>
+    string(7) "APP_URL"
+    [1] =>
+    string(7) "APP_KEY"
+}
 ```

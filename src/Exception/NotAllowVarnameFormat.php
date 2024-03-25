@@ -4,6 +4,6 @@ namespace NAL\Dotenv\Exception;
 
 use Error;
 
-class NotAllowVarnameFormat extends Error
+class NotAllowedVarNameFormat extends Error
 {
 }
