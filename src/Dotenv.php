@@ -195,6 +195,8 @@ class Dotenv
 
         $this->isLoaded = true;
 
+        $this->updateGlobalEnv();
+
         return $this;
     }
 
