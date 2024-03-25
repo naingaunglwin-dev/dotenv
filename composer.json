@@ -2,7 +2,7 @@
   "name": "naingaunglwin-dev/dotenv",
   "description": "Simple PHP Dotenv Library",
   "minimum-stability": "dev",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "prefer-stable": true,
   "license": "MIT",
   "authors": [
