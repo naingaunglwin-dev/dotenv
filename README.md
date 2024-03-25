@@ -70,6 +70,16 @@ $dotenv->restart(['LOCALE' => 'en']);
 - **Available Only In Version 1.0.1 (Review CHANGELOG.md for more changes)**
 
 ```php
+// Create new instance with autoload
+$dotenv = new \NAL\Dotenv\Dotenv('path/to/your/file/.env', true);
+
+// Load manually
+$dotenv = new NAL\Dotenv\Dotenv('path/to/your/file/.env');
+
+$dotenv->load();
+
+
+
 // if you set your environment variables in group like this,
 APP_URL='https://example.com/'
 APP_KEY=1234567
