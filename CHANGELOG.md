@@ -29,3 +29,23 @@ array(2) {
 
 - **Remove deleted variables**
   - This includes removing deleted environment variables from `$_SERVER`, `$_ENV`, and `getenv()`.
+
+## v1.0.2
+
+### Changes
+- Remove env variables manually set process.
+- Dotenv now accept 2 parameters, `array|string` **$file** & `string` **$path**
+- Dotenv will load default defined `env` files if user pass nothing to $file
+```php
+// Change method name
+
+// from
+$dotenv->getInGroup('APP');
+// to
+$dotenv->group('APP');
+
+// from
+$dotenv->restart();
+// to
+$dotenv->reload(); // Reload no longer accept default values
+```
