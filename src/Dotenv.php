@@ -67,6 +67,13 @@ class Dotenv
     ];
 
     /**
+     * Server key that hold for all env keys
+     *
+     * @var string
+     */
+    private string $key = "__NAL_ENV_KEYS";
+
+    /**
      * Dotenv constructor.
      *
      * Initializes the Dotenv instance by loading environment variables
@@ -76,7 +83,7 @@ class Dotenv
      */
     public function __construct(string|array $file = null, string $basepath = '')
     {
-        $this->basepath = empty($basepath) ? dirname(__DIR__) . '/../../..' : $basepath;
+        $this->basepath = empty($basepath) ? dirname(__DIR__, 4) : $basepath;
 
         if (!str_ends_with("/", $this->basepath) && !str_ends_with("\\", $this->basepath)) {
             $this->basepath .= "/";
@@ -272,8 +279,8 @@ class Dotenv
      */
     private function update(array $default = null): void
     {
-        $previousKeys = isset($_SERVER['_MICRO_ENV_KEYS'])
-            ? explode(',', $_SERVER['_MICRO_ENV_KEYS'])
+        $previousKeys = isset($_SERVER[$this->key])
+            ? explode(',', $_SERVER[$this->key])
             : $this->keys;
 
         if (!empty($default)) {
@@ -303,7 +310,7 @@ class Dotenv
             $this->global = $_ENV = $this->local;
 
             $_SERVER += $this->global;
-            $_SERVER['_MICRO_ENV_KEYS'] = implode(',', $this->keys);
+            $_SERVER[$this->key] = implode(',', $this->keys);
         }
     }
 
