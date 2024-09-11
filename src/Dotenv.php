@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace NAL\Dotenv;
 
+use NAL\Dotenv\Exception\Missing;
+use NAL\Dotenv\Exception\UnMatch;
+
 class Dotenv
 {
     /**
@@ -356,8 +359,10 @@ class Dotenv
      */
     private function match(array $vars): void
     {
+        $pattern = '/^[a-zA-Z_][a-zA-Z_.]*$/';
+
         foreach ($vars as $key => $value) {
-            if (!preg_match('/^[a-zA-Z_][a-zA-Z_.]*$/', $key)) throw new \InvalidArgumentException("Not allowed variable key format is used");
+            if (!preg_match($pattern, $key)) throw UnMatch::varNameFormat($key, $pattern);
         }
     }
 
@@ -388,7 +393,7 @@ class Dotenv
 
         foreach ($file as $f) {
             $check = $this->basepath . $f;
-            if (!file_exists($check)) throw new \InvalidArgumentException("$check doesn't exist");
+            if (!file_exists($check)) throw Missing::file($check);
         }
     }
 }
