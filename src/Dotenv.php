@@ -1,315 +1,387 @@
 <?php
 
-namespace NAL\Dotenv;
+declare(strict_types=1);
 
-use BadMethodCallException;
-use NAL\Dotenv\Exception\NotAllowedVarNameFormat;
-use Nal\Dotenv\Exception\PathNotFoundException;
+namespace NAL\Dotenv;
 
 class Dotenv
 {
     /**
-     * Env File
+     * The array of environment files to be loaded.
+     *
+     * @var array
+     */
+    private array $files;
+
+    /**
+     * Base path of the project
      *
      * @var string
      */
-    private string $file;
+    private string $basepath = '';
 
     /**
-     * Local env data
+     * The local environment variables loaded from files.
      *
      * @var array
      */
     private array $local = [];
 
     /**
-     * $_ENV
+     * The global environment variables.
      *
      * @var array
      */
     private array $global = [];
 
     /**
-     * Env group
+     * Whether the environment variables have been loaded.
+     *
+     * @var bool
+     */
+    private bool $loaded = false;
+
+    /**
+     * Grouped environment variables.
      *
      * @var array
      */
     private array $group = [];
 
     /**
-     * Condition for `.env` file load process is finished or not
-     *
-     * @var bool
-     */
-    private bool $isLoaded = false;
-
-    /**
-     * Environment keys stored in $_SERVER, $_ENV
+     * The keys of all loaded environment variables.
      *
      * @var array
      */
-    private array $envKeys = [];
+    private array $keys = [];
 
     /**
-     * Constructor for the Dotenv class.
+     * The default environment file names to look for.
      *
-     * @param string $file The path to the .env file.
+     * @var array
      */
-    public function __construct(string $file, bool $load = null)
+    private array $defaults = [
+        '.env', '.env.local',
+        '.env.development', '.env.production',
+        '.env.dev', '.env.prod'
+    ];
+
+    /**
+     * Dotenv constructor.
+     *
+     * Initializes the Dotenv instance by loading environment variables
+     * from specified files or default files if none are provided.
+     *
+     * @param string|array<string>|null $file The environment file(s) to load.
+     */
+    public function __construct(string|array $file = null, string $basepath = '')
     {
-        if ($load === null) {
-            $load = false;
+        $this->basepath = empty($basepath) ? dirname(__DIR__) . '/../../..' : $basepath;
+
+        if (!str_ends_with("/", $this->basepath) && !str_ends_with("\\", $this->basepath)) {
+            $this->basepath .= "/";
         }
 
-        $this->file = $file;
-
-        if ($load === true) {
-            $this->load();
+        if (!$file) {
+            $file = $this->find();
+        } else {
+            $this->validate(file: $file);
         }
 
-        $this->updateGlobalEnv();
+        $this->files = $file;
+
+        $this->load(file: $this->files);
     }
 
     /**
-     * Retrieve the value of the specified environment variable by key.
+     * Get an environment variable value.
      *
-     * @param string $key The key of the environment variable.
-     * @return mixed The value of the specified environment variable if it exists, otherwise null.
+     * Returns the value of the specified environment variable key.
+     * If no key is specified, returns all loaded environment variables.
+     *
+     * @param string|null $key The environment variable key.
+     * @param mixed $default The default value if the key is not found.
+     * @return mixed The value of the environment variable or the default value.
      */
-    public function get(string $key): mixed
+    public function get(string $key = null, mixed $default = null): mixed
     {
-        if ($this->isLoaded === false) {
-            throw new BadMethodCallException("The 'load()' method must be invoked before calling the 'set()' method.");
+        if (!$this->loaded) $this->load(file: $this->files);
+
+        if (is_null($key)) {
+            return $this->global;
         }
 
-        if (isset($this->global[$key])) {
-            return $this->global[$key];
-        }
-
-        return null;
+        return $this->global[$key] ?? $default;
     }
 
     /**
-     * Retrieve environment variables belonging to a specific group.
+     * Get a group of environment variables.
      *
-     * This method retrieves the environment variables that belong to the specified group.
+     * Returns all environment variables that belong to the specified group.
      *
-     * @param string $group The name of the group to retrieve environment variables for.
-     * @return array|null An array containing the environment variables belonging to the specified group, or null if the group does not exist.
-     * @throws BadMethodCallException If the 'load()' method has not been invoked before calling this method.
+     *       [
+     *         'APP' => [
+     *           'APP_NAME'   => 'Dotenv'
+     *           'APP_ENV'    => 'development',
+     *           'APP_LOCALE' => 'en'
+     *         ]
+     *       ]
+     *
+     * @param string $group The group name.
+     * @param mixed $default The default value if the group is not found.
+     * @return mixed The group of environment variables or the default value.
      */
-    public function getInGroup(string $group): ?array
+    public function group(string $group, mixed $default = []): mixed
     {
-        if ($this->isLoaded === false) {
-            throw new BadMethodCallException("The 'load()' method must be invoked before calling the 'set()' method.");
-        }
+        if (!$this->loaded) $this->load(file: $this->files);
 
-        return $this->group[$group] ?? null;
+        return $this->group[$group] ?? $default;
     }
 
     /**
-     * Set a new environment variable or update an existing one.
+     * Find available environment files.
      *
-     * @param string $key The key (variable name) to set or update.
-     * @param mixed $value The value to assign to the variable.
-     * @param bool|null $overwrite If true, the variable will be updated if it exists, otherwise it won't be updated.
+     * Searches the default environment files in the project root directory.
      *
-     * @return void
+     * @return array The list of available environment files.
      */
-    public function set(string $key, mixed $value, bool $overwrite = null): void
+    private function find(): array
     {
-        if ($this->isLoaded === false) {
-            throw new BadMethodCallException("The 'load()' method must be invoked before calling the 'set()' method.");
+        $available = [];
+
+        foreach ($this->defaults as $default) {
+            if (file_exists($this->basepath . $default)) {
+                $available[] = $default;
+            }
         }
 
-        if ($overwrite === null) {
-            $overwrite = false;
-        }
-
-        $this->store([$key => $value], $overwrite);
-
-        $this->updateGlobalEnv();
+        return $available;
     }
 
     /**
-     * Restart the environment variables with given defaults.
+     * Load environment variables from files.
      *
-     * @param array|null $default An array of default variables.
-     * @return void
-     */
-    public function restart(array $default = null): void
-    {
-        $this->local = [];
-
-        $this->updateGlobalEnv($default);
-
-        $this->load();
-
-        $this->updateGlobalEnv($default);
-    }
-
-    /**
-     * Load the variables from the .env file.
+     * Loads environment variables from the specified file(s) and stores them
+     * in the local and global arrays. If variables are already loaded, this method returns early.
      *
-     * @throws PathNotFoundException If the specified file does not exist.
-     * @throws NotAllowedVarNameFormat If a variable name does not match the allowed pattern.
-     * @return Dotenv
+     * @param string|array|null $file The environment file(s) to load.
+     * @return Dotenv Returns the current Dotenv instance.
      */
-    public function load(): Dotenv
+    public function load(string|array $file = null): Dotenv
     {
-        if ($this->isLoaded) {
+        if ($this->loaded) {
             return $this;
         }
 
-        $file = $this->file;
-
-        if (!file_exists($file) || !is_file($file)) {
-            throw new \NAL\Dotenv\Exception\PathNotFoundException("File not found or Not a valid file: $file");
+        if (!empty($file)) {
+            $this->validate(file: $file);
         }
 
-        $array = file($file);
-        $contents = [];
+        if (is_string($file)) {
+            $file = [$file];
+        }
 
-        foreach ($array as $content) {
+        $file = array_merge($this->files, $file);
 
-            $content = trim($content);
+        $read = [];
 
-            if (str_contains($content, '#')) {
+        foreach ($file as $f) {
+
+            $f = $this->basepath . $f;
+
+            if (!file_exists($f)) {
                 continue;
             }
 
-            $e = explode("=", $content, 2);
+            foreach (file($f) as $content) {
+                $content = $this->trim(string: $content);
 
-            if (count($e) === 2) {
-                $key   = trim($e[0]);
-                $value = trim($e[1]);
+                if (str_contains($content, '#')) {
+                    continue;
+                }
 
-                $key   = $this->removeQuotes($key);
-                $value = $this->removeQuotes($value);
+                $exploded = explode('=', $content, 2);
 
-                $contents[$key] = $value;
+                if (count($exploded) === 2) {
+                    $key   = str_replace(
+                        ['"', "'"],
+                        '',
+                        $this->trim(string: $exploded[0])
+                    );
+
+                    $value = str_replace(
+                        ['"', "'"],
+                        '',
+                        $this->trim(string: $exploded[1])
+                    );
+
+                    $read[$key] = $value;
+
+                    preg_match('/^[A-Za-z]+(?=_)/', $key, $matches);
+
+                    if ($matches) {
+                        $this->group[$matches[0]] = [$key => $value];
+                    }
+                }
             }
         }
 
-        $this->store($contents);
+        $read['REQUEST_SCHEME'] = $_SERVER['REQUEST_SCHEME'] ?? 'http';
 
-        $this->isLoaded = true;
+        $this->store(envs: $read);
 
-        $this->updateGlobalEnv();
+        $this->loaded = true;
+
+        $this->update();
 
         return $this;
     }
 
     /**
-     * Store and update the environment variables.
+     * Reloads environment variables from the specified files.
      *
-     * @param array $vars An array of variables to store.
-     * @param bool|null $overwrite
-     * @return void
+     * Resets the local environment variables, reloads the environment
+     * variables from the files, and updates the global environment variables. If a
+     * default set of variables is provided, they are merged with the reloaded
+     * variables.
+     *
+     * @param array|null $default An optional array of default environment variables to merge after reloading.
+     * @return Dotenv.
      */
-    private function store(array $vars, bool $overwrite = null): void
+    public function reload(array $default = null): Dotenv
     {
-        if ($overwrite === null) {
-            $overwrite = false;
-        }
+        $this->local = [];
 
-        foreach ($vars as $name => $value) {
-            if ($this->match($name)) {
-                if ($overwrite) {
-                    $this->local[$name] = $value;
-                } else {
-                    if (!isset($this->local[$name])) {
-                        $this->local[$name] = $value;
-                    }
-                }
-            }
-        }
+        $this->update();
+
+        $this->load(file: $this->files);
+
+        $this->update(default: $default);
+
+        return $this;
     }
 
     /**
-     * Matches the variable name(s) against the allowed pattern.
+     * Update the environment variables.
      *
-     * @param string|array $vars The variable name(s) to match against the pattern.
+     * Updates the local and global environment variables and synchronizes them with
+     * the PHP `$_SERVER` and `$_ENV` superglobals.
      *
-     * @throws NotAllowedVarNameFormat If any variable name doesn't match the allowed pattern.
-     *
-     * @return bool True if the variable name(s) match the pattern or if an empty array is passed, otherwise false.
-     */
-    private function match(string|array $vars): bool
-    {
-        if (is_array($vars)) {
-            if (empty($vars)) {
-                return true;
-            }
-        }
-
-        $array = [];
-
-        if (is_string($vars)) {
-            $array[$vars] = "";
-        }
-
-        foreach ($array as $name => $value) {
-            if (!preg_match('/^[a-zA-Z_][a-zA-Z_.]*$/', $name)) {
-                throw new \NAL\Dotenv\Exception\NotAllowedVarNameFormat("Var name $name doesn't match with allowed Var name pattern");
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Update the global environment variables.
-     *
-     * @param array|null $default An array of default variables.
+     * @param array|null $default The default environment variables to merge.
      * @return void
      */
-    private function updateGlobalEnv(array $default = null): void
+    private function update(array $default = null): void
     {
-        $previousKeys = isset($_SERVER['NAL_ENV_KEYS'])
-            ? explode(',', $_SERVER['NAL_ENV_KEYS'])
-            : $this->envKeys;
+        $previousKeys = isset($_SERVER['_MICRO_ENV_KEYS'])
+            ? explode(',', $_SERVER['_MICRO_ENV_KEYS'])
+            : $this->keys;
 
         if (!empty($default)) {
             $this->local = array_merge($this->local, $default);
         }
 
-        if (!empty($this->local) && $this->match($this->local)) {
+        if (!empty($this->local)) {
+            $this->match($this->local);
 
-            $envKeys = [];
+            $keys = [];
 
             foreach ($this->local as $key => $value) {
-                putenv(sprintf("%s=%s", $key, $value));
-                $envKeys[] = $key;
+                putenv(sprintf('%s=%s', $key, $value));
+                $keys[] = $key;
             }
 
-            $this->envKeys = $envKeys;
+            $this->keys = $keys;
 
-            $keyDiff = array_diff_key($previousKeys, $this->envKeys);
+            $diff = array_diff_key($previousKeys, $this->keys);
 
-            if (!empty($keyDiff)) {
-                foreach ($keyDiff as $key => $value) {
-                    unset($_SERVER[$key]);
-                    putenv($key);
-                    unset($_ENV[$key]);
+            if (!empty($diff)) {
+                foreach ($diff as $key => $value) {
+                    $this->unset(key: $key);
                 }
             }
 
             $this->global = $_ENV = $this->local;
 
             $_SERVER += $this->global;
-            $_SERVER['NAL_ENV_KEYS'] = implode(',', $this->envKeys);
+            $_SERVER['_MICRO_ENV_KEYS'] = implode(',', $this->keys);
         }
     }
 
     /**
-     * Remove Double Quote & Single Quote from string
+     * Unset an environment variable.
      *
-     * @param $value
-     * @return string
+     * Removes the specified environment variable from `$_SERVER`, `$_ENV`, and the process environment.
+     *
+     * @param string $key The environment variable key to unset.
+     * @return void
      */
-    private function removeQuotes($value): string
+    private function unset(string $key): void
     {
-        return str_replace(['"', "'"], '', $value);
+        if (isset($_SERVER[$key])) unset($_SERVER[$key]);
+        putenv($key);
+        if (isset($_ENV[$key])) unset($_ENV[$key]);
+    }
+
+    /**
+     * Store environment variables.
+     *
+     * Stores the environment variables in the local array after matching the keys against a pattern.
+     *
+     * @param array $envs The environment variables to store.
+     * @return void
+     */
+    private function store(array $envs): void
+    {
+        foreach ($envs as $key => $value) {
+            $this->match(vars: [$key => $value]);
+            $this->local[$key] = $value;
+        }
+    }
+
+    /**
+     * Validate environment variable keys.
+     *
+     * Ensures that all environment variable keys match the allowed pattern.
+     *
+     * @param array $vars The array of environment variables to validate.
+     * @return void
+     * @throws \InvalidArgumentException If a variable key has an invalid format.
+     */
+    private function match(array $vars): void
+    {
+        foreach ($vars as $key => $value) {
+            if (!preg_match('/^[a-zA-Z_][a-zA-Z_.]*$/', $key)) throw new \InvalidArgumentException("Not allowed variable key format is used");
+        }
+    }
+
+    /**
+     * Trim whitespace and unwanted characters from a string.
+     *
+     * Removes leading and trailing whitespace and reduces internal whitespace to a single space.
+     *
+     * @param string $string The string to trim.
+     * @return string The trimmed string.
+     */
+    private function trim(string $string): string
+    {
+        return preg_replace('/\s+/', '', trim($string));
+    }
+
+    /**
+     * Validate th file
+     *
+     * @param array<string>|string $file
+     * @return void
+     */
+    private function validate(array|string $file): void
+    {
+        if (is_string($file)) {
+            $file = [$file];
+        }
+
+        foreach ($file as $f) {
+            $check = $this->basepath . $f;
+            if (!file_exists($check)) throw new \InvalidArgumentException("$check doesn't exist");
+        }
     }
 }
