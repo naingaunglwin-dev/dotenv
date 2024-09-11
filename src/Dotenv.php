@@ -98,7 +98,7 @@ class Dotenv
             $this->validate(file: $file);
         }
 
-        $this->files = $file;
+        $this->files = is_array($file) ? $file : [$file];
 
         $this->load(file: $this->files);
     }
@@ -130,11 +130,9 @@ class Dotenv
      * Returns all environment variables that belong to the specified group.
      *
      *       [
-     *         'APP' => [
      *           'APP_NAME'   => 'Dotenv'
      *           'APP_ENV'    => 'development',
      *           'APP_LOCALE' => 'en'
-     *         ]
      *       ]
      *
      * @param string $group The group name.
@@ -200,6 +198,9 @@ class Dotenv
             $f = $this->basepath . $f;
 
             if (!file_exists($f)) {
+                /**
+                 * @codeCoverageIgnore To make sure only exist file is used
+                 */
                 continue;
             }
 
@@ -230,7 +231,7 @@ class Dotenv
                     preg_match('/^[A-Za-z]+(?=_)/', $key, $matches);
 
                     if ($matches) {
-                        $this->group[$matches[0]] = [$key => $value];
+                        $this->group[$matches[0]][$key] = $value;
                     }
                 }
             }
@@ -251,22 +252,18 @@ class Dotenv
      * Reloads environment variables from the specified files.
      *
      * Resets the local environment variables, reloads the environment
-     * variables from the files, and updates the global environment variables. If a
-     * default set of variables is provided, they are merged with the reloaded
-     * variables.
+     * variables from the files, and updates the global environment variables.
      *
-     * @param array|null $default An optional array of default environment variables to merge after reloading.
      * @return Dotenv.
      */
-    public function reload(array $default = null): Dotenv
+    public function reload(): Dotenv
     {
         $this->local = [];
 
         $this->update();
 
-        $this->load(file: $this->files);
-
-        $this->update(default: $default);
+        $this->load(file: $this->files)
+            ->update();
 
         return $this;
     }
@@ -277,18 +274,13 @@ class Dotenv
      * Updates the local and global environment variables and synchronizes them with
      * the PHP `$_SERVER` and `$_ENV` superglobals.
      *
-     * @param array|null $default The default environment variables to merge.
      * @return void
      */
-    private function update(array $default = null): void
+    private function update(): void
     {
         $previousKeys = isset($_SERVER[$this->key])
             ? explode(',', $_SERVER[$this->key])
             : $this->keys;
-
-        if (!empty($default)) {
-            $this->local = array_merge($this->local, $default);
-        }
 
         if (!empty($this->local)) {
             $this->match($this->local);
@@ -324,6 +316,8 @@ class Dotenv
      *
      * @param string $key The environment variable key to unset.
      * @return void
+     *
+     * @codeCoverageIgnore
      */
     private function unset(string $key): void
     {
