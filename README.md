@@ -20,19 +20,19 @@ The class supports loading variables from multiple files.
 - **PHP** version 8.0 or newer is required
 
 ## Installation & Setup
-- You can just download the code from repo and use or download using composer.
 
-### Download Using Composer
-- If you don't have composer, install [composer](https://getcomposer.org/download/) first.
-- create file `composer.json` at your project root directory.
-- Add this to `composer.json`
-```php
+### Using Composer
+> If Composer is not installed, follow the [official guide](https://getcomposer.org/download/).
+
+1. Create a `composer.json` file at your project root directory (if you don't have one):
+```json
 {
   "require": {
     "naingaunglwin-dev/dotenv": "^1.0"
   }
 }
 ```
+
 - Run the following command in your terminal from the project's root directory:
 ```bash
 composer install
@@ -44,67 +44,78 @@ composer require naingaunglwin-dev/dotenv
 ```
 
 ## Features
-- **Base Path Handling**: The base path of the project is automatically set to the root level of the project, but you can provide a custom base path when initializing the class.
-- **Environment Groups**: Group environment variables based on their prefix.
-- **File Validation**: Ensures that the specified .env file(s) exist in the project directory.
-- **Environment Update**: Synchronizes environment variables with the PHP $_SERVER and $_ENV superglobals.
 
-## Configuration
-- You can customize the base path for locating environment files by passing it to the constructor:
+- ✅ Automatically uses the project root, but allows setting a custom path when initializing.
+- ✅ Load from multiple .env files
+- ✅ Customize file names and base path
+- ✅ Support for grouped environment variables
+- ✅ Auto-sync with `$_ENV`, `$_SERVER`, and `getenv()`
+- ✅ Reload environment at runtime
+- ✅ Check if a variable exists with `has()`
+- ✅ Supports default fallback values
+
+## Constructor Signature
 ```php
-$dotenv = new Dotenv(null, '/custom/path/');
+  public function __construct(
+      array|string|null $files = null,
+      string|null $envKey = null,
+      bool $overwrite = true
+  )
 ```
+- `$files`: Optional string or array of .env file names. Defaults to standard files like `.env`, `.env.local`, etc.
+- `$envKey`: Custom key for detecting the app environment (e.g., `APP_ENV`)
+- `$overwrite`: Whether to overwrite existing variables (true by default)
 
-- If no file is provided, the Dotenv class will search for the following default files in the specified or root directory:
 
-    - .env
-    - .env.local
-    - .env.development
-    - .env.production
-    - .env.dev
-    - .env.prod
+- If no file is provided, the Dotenv class will search for the following default files in root directory:
+  - .env
+  - .env.local,
+  - .env.development
+  - .env.production
+  - .env.testing
+  - .env.dev
+  - .env.prod
+  - .env.test
+  - .env.staging
 
 ## Usage
 
 ### Loading Environment Variables
-- To load environment variables, simply initialize the Dotenv class.
-- By default, it looks for common .env files (such as .env, .env.local, .env.production, etc.) in the project root directory.
+- You can pass your environment file(s) with either a full path or just the file name.
+- If you pass a full path, the file will be loaded directly from that path.
+- If you pass just the file name, it will be resolved relative to the project root directory.
 
 ```php
 <?php
 
-require_once "vendor/autoload.php";
-
 use NAL\Dotenv\Dotenv;
 
-// Initialize Dotenv and load environment variables
-$dotenv = new Dotenv();
-```
+// Load a file using its full path
+$dotenv = new Dotenv('/home/user/project/config/.env.custom');
 
-- You can also specify custom environment files to load by passing the file name(s) to the constructor:
-```php
-$dotenv = new Dotenv('.env.testing');
-```
+// Load a file from the project root by name
+$dotenv = new Dotenv('.env.production');
 
-- Or load multiple files:
-```php
-$dotenv = new Dotenv(['.env.dev', '.env.prod']);
+// Load multiple files
+$dotenv = new Dotenv(['.env.local', '/home/user/project/.env.override']);
 ```
 
 ### Accessing Environment Variables
-- Once the environment files are loaded, you can retrieve environment variables using the get() method. If no key is provided, it will return all variables.
 
 ```php
 // Get a specific variable
-$appName = $dotenv->get('APP_NAME');
+$dotenv->load();
 
-// Get all variables
-$envVariables = $dotenv->get();
+$host = $dotenv->get('DB_HOST');             // Get a variable
+$debug = $dotenv->get('DEBUG', false);       // With fallback
+$all = $dotenv->get();                       // Get all loaded variables
 ```
 
-- You can also provide a default value if the key is not found:
+### Check Existence
 ```php
-$debugMode = $dotenv->get('DEBUG_MODE', false);
+if ($dotenv->has('APP_SECRET')) {
+    // APP_SECRET is defined
+}
 ```
 
 ### Grouping Environment Variables
@@ -112,13 +123,14 @@ $debugMode = $dotenv->get('DEBUG_MODE', false);
 - This can be useful if you have variables structured by prefix (e.g., APP_NAME, APP_ENV).
 
 ```php
-$appGroup = $dotenv->group('APP');
+$grouped = $dotenv->group('APP');
+// e.g., ['APP_NAME', 'APP_ENV', 'APP_KEY']
 ```
 
 ### Reloading Environment Variables
 - You can reload environment variables by calling the `reload()` method. This method clears the previously loaded variables and reloads them from the specified files.
 ```php
-$dotenv->reload();
+$dotenv->reload(); // Clear and reload loaded files
 ```
 
 ## Exception Handling
@@ -129,22 +141,25 @@ $dotenv->reload();
 
 ### Example
 ```php
+<?php
+
 use NAL\Dotenv\Dotenv;
 
 try {
-    // Initialize dotenv
-    $dotenv = new Dotenv();
+    $dotenv = new Dotenv(['.env']);
+    $dotenv->load();
 
-    // Load variables from a specific .env file
-    $dotenv->load('.env');
-
-    // Get environment variables
-    $dbHost = $dotenv->get('DB_HOST', 'localhost');
-
-    // Get all environment variables
-    $allEnv = $dotenv->get();
+    $dbUser = $dotenv->get('DB_USER', 'root');
 
 } catch (\Exception $e) {
-    echo 'Error loading environment variables: ' . $e->getMessage();
+    echo 'Dotenv Error: ' . $e->getMessage();
 }
 ```
+
+## Running Tests
+
+- To run the test suite, execute the following command
+```bash
+vendor/bin/phpunit tests/DotenvTest.php
+```
+- This will run all test cases defined in the DotenvTest.php file.

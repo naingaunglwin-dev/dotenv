@@ -1,1 +1,7 @@
 .idea/
+
+# phpunit generated files
+.phpunit.cache
+build/
+
+vendor/
