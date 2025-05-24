@@ -49,3 +49,21 @@ $dotenv->restart();
 // to
 $dotenv->reload(); // Reload no longer accept default values
 ```
+
+## v1.0.3
+
+### Changes
+- replace `file()` with `fopen()` for improved performance when reading env files
+- The constructor now accepts three parameters:
+  - `array|string|null` **$file**
+  - `string|null` **$envKey**
+  - `bool` **$overwrite**
+- improved `load` method:
+  - On production mode, env files are loaded only once (for performance)
+
+### Added
+- New method `has()` to check for the existence of an env variable:
+```php
+$dotenv->has('APP_LOCALE');
+```
+- You can now control whether to overwrite existing environment variables when loading multiple env files, via the $overwrite parameter.

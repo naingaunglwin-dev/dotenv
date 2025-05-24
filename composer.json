@@ -2,7 +2,7 @@
   "name": "naingaunglwin-dev/dotenv",
   "description": "Simple PHP Dotenv Library",
   "minimum-stability": "dev",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "prefer-stable": true,
   "license": "MIT",
   "authors": [
@@ -12,11 +12,15 @@
     }
   ],
   "require": {
-    "php": "^8.0"
+    "php": "^8.2"
   },
   "autoload": {
     "psr-4": {
-      "NAL\\Dotenv\\": "src/"
+      "NAL\\Dotenv\\": "src/",
+      "NALDotenvTests\\": "tests/"
     }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.1"
   }
 }
