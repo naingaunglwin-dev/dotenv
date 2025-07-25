@@ -38,7 +38,7 @@ It's ideal for both small-scale projects and larger applications where managing 
 ```json
 {
   "require": {
-    "naingaunglwin-dev/dotenv": "^1.0"
+    "naingaunglwin-dev/dotenv": "^2.0"
   }
 }
 ```
