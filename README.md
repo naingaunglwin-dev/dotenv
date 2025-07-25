@@ -8,16 +8,26 @@
 </div>
 
 ## About
-The `NAL\Dotenv` class is a lightweight PHP package for managing environment variables.
-It allows you to load environment variables from files, group variables, and access them in your PHP application.
-The class supports loading variables from multiple files.
+`NAL\Dotenv` is a flexible and lightweight PHP environment loader designed for modern applications.
+It supports loading environment variables from `.env` and `.json` files by default, with the ability to register custom loaders (e.g., YAML, XML) effortlessly.
+
+**This package provides:**
+
+- Grouped access to related environment keys
+- Support for multiple environment files
+- Static or instance-based access
+- Optional caching for performance
+- Convention-based parser resolution
+- Seamless integration with custom loaders and parsers
+
+It's ideal for both small-scale projects and larger applications where managing structured and multi-source environment data is essential.
 
 ## Contributing
 - This is an open-source library, and contributions are welcome.
 - If you have any suggestions, bug reports, or feature requests, please open an issue or submit a pull request on the project repository.
 
 ## Requirement
-- **PHP** version 8.0 or newer is required
+- **PHP** version 8.2 or newer is required
 
 ## Installation & Setup
 
@@ -44,122 +54,136 @@ composer require naingaunglwin-dev/dotenv
 ```
 
 ## Features
+✅ **Load .env files easily**
+- Supports standard .env key-value files for environment configuration.
 
-- ✅ Automatically uses the project root, but allows setting a custom path when initializing.
-- ✅ Load from multiple .env files
-- ✅ Customize file names and base path
-- ✅ Support for grouped environment variables
-- ✅ Auto-sync with `$_ENV`, `$_SERVER`, and `getenv()`
-- ✅ Reload environment at runtime
-- ✅ Check if a variable exists with `has()`
-- ✅ Supports default fallback values
+✅ **Support for .json config files**
+- Load structured environment data from JSON files — great for frontend-backend monorepo setups.
 
-## Constructor Signature
-```php
-  public function __construct(
-      array|string|null $files = null,
-      string|null $envKey = null,
-      bool $overwrite = true
-  )
-```
-- `$files`: Optional string or array of .env file names. Defaults to standard files like `.env`, `.env.local`, etc.
-- `$envKey`: Custom key for detecting the app environment (e.g., `APP_ENV`)
-- `$overwrite`: Whether to overwrite existing variables (true by default)
+✅ **Nested key flattening**
+- Nested JSON keys are automatically flattened into uppercase ENV_STYLE_KEYS.
 
+✅ **Environment grouping support**
+- Automatically organizes keys into groups based on naming conventions like APP_ENV → APP group.
 
-- If no file is provided, the Dotenv class will search for the following default files in root directory:
-  - .env
-  - .env.local,
-  - .env.development
-  - .env.production
-  - .env.testing
-  - .env.dev
-  - .env.prod
-  - .env.test
-  - .env.staging
+✅ **Custom Loader Registry**
+- Register your own loaders to support formats like YAML, TOML, etc.
+
+✅ **Optional override behavior**
+- Configure whether later files can override previously loaded keys.
+
+✅ **Safe loading**
+- Use `safeLoad()` to prevent exceptions when loading optional or missing files.
+
+✅ **Supercharged access methods**
+- Access environment values using `Env::get('KEY')` or grouped access with `Env::group('APP')`.
+
+✅ **Supports multiple files**
+- Pass an array of files to load them in order — useful for layering config.
 
 ## Usage
 
-### Loading Environment Variables
-- You can pass your environment file(s) with either a full path or just the file name.
-- If you pass a full path, the file will be loaded directly from that path.
-- If you pass just the file name, it will be resolved relative to the project root directory.
-
 ```php
 <?php
 
-use NAL\Dotenv\Dotenv;
+use NAL\Dotenv\Env;
 
-// Load a file using its full path
-$dotenv = new Dotenv('/home/user/project/config/.env.custom');
+$env = Env::create()->load();
 
-// Load a file from the project root by name
-$dotenv = new Dotenv('.env.production');
-
-// Load multiple files
-$dotenv = new Dotenv(['.env.local', '/home/user/project/.env.override']);
+// Access values
+$envs = $env->get('APP_ENV');           // "production"
+$group = $env->group('DATABASE');      // ['DATABASE_HOST' => '127.0.0.1', ...]
 ```
 
-### Accessing Environment Variables
-
-```php
-// Get a specific variable
-$dotenv->load();
-
-$host = $dotenv->get('DB_HOST');             // Get a variable
-$debug = $dotenv->get('DEBUG', false);       // With fallback
-$all = $dotenv->get();                       // Get all loaded variables
-```
-
-### Check Existence
-```php
-if ($dotenv->has('APP_SECRET')) {
-    // APP_SECRET is defined
-}
-```
-
-### Grouping Environment Variables
-- You can access grouped environment variables with the group() method.
-- This can be useful if you have variables structured by prefix (e.g., APP_NAME, APP_ENV).
-
-```php
-$grouped = $dotenv->group('APP');
-// e.g., ['APP_NAME', 'APP_ENV', 'APP_KEY']
-```
-
-### Reloading Environment Variables
-- You can reload environment variables by calling the `reload()` method. This method clears the previously loaded variables and reloads them from the specified files.
-```php
-$dotenv->reload(); // Clear and reload loaded files
-```
-
-## Exception Handling
-- The Dotenv class throws the following exceptions:
-
-  - **NAL\Dotenv\Exception\Missing**: Thrown when the specified environment file does not exist.
-  - **NAL\Dotenv\Exception\UnMatch**: Thrown when an environment variable key does not match the expected format.
-
-### Example
+#### Static Access
+You can also use static calls without manually creating an instance:
 ```php
 <?php
 
-use NAL\Dotenv\Dotenv;
+use NAL\Dotenv\Env;
 
-try {
-    $dotenv = new Dotenv(['.env']);
-    $dotenv->load();
-
-    $dbUser = $dotenv->get('DB_USER', 'root');
-
-} catch (\Exception $e) {
-    echo 'Dotenv Error: ' . $e->getMessage();
-}
+$value = Env::get('APP_ENV');
+$group = Env::group('APP');
 ```
+> If no instance was created yet, Env::get() and Env::group() will auto-initialize using default behavior `(.env, no cache)`. If an instance was previously created via Env::create(), the static calls will reuse that instance instead.
+
+#### Safe Load (No Exceptions)
+```php
+<?php
+
+use NAL\Dotenv\Env;
+
+$env = Env::create()->safeLoad(); // Returns ['envs' => [], 'groups' => []] on failure
+```
+
+#### Load JSON Configuration
+```php
+<?php
+
+use NAL\Dotenv\Env;
+
+$env = Env::create(name: 'env.json')->load();
+```
+
+#### Load Multiple Files
+```php
+<?php
+
+use NAL\Dotenv\Env;
+
+Env::create(name: ['.env', '.env.testing'])->load();
+```
+
+#### Enable Caching
+```php
+<?php
+
+use NAL\Dotenv\Env;
+
+Env::create(name: '.env', cache: true)->load(); // Loads once, reuses from memory
+```
+
+#### Register Custom Loader (e.g., YAML)
+```php
+<?php
+
+use NAL\Dotenv\Loader\LoaderRegistry;
+
+$registry = new LoaderRegistry();
+
+$registry->register('yaml', fn ($file, $override, $resolver, $parser) => new YamlLoader(
+    $file, $override, $resolver, $parser
+), '\\Namespace\\For\\Parser');
+
+Env::create(name: 'config.yaml', registry: $registry)->load();
+```
+
+**Notes for Custom Loader Development**
+- The registered callback must accept exactly 4 arguments in this order:
+```php
+($file, $override, $resolver, $parser)
+```
+- Your custom loader **must**:
+
+  - Implement `NAL\Dotenv\Loader\LoaderInterface`
+
+    **or**
+
+  - Extend `NAL\Dotenv\Loader\BaseLoader` for convenient utilities like `resolveFiles()` and `save()`.
+
+- Every custom loader must include a corresponding parser, whose class name:
+
+  - **Starts with the capitalized extension name**, followed by Parser
+    **e.g., for .yaml, the parser must be YamlParser**
+
+  - **Must implement** `NAL\Dotenv\Parser\ParserInterface`
+
+> Parsers are resolved by convention from the namespace `\NAL\Dotenv\Parser\`, or a custom namespace if provided.
 
 ## Running Tests
 
 - To run the test suite, execute the following command
 ```bash
-vendor/bin/phpunit tests/DotenvTest.php
+vendor/bin/phpunit tests/EnvTest.php
 ```
-- This will run all test cases defined in the DotenvTest.php file.
+- This will run all test cases defined in the EnvTest.php file.
