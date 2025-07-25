@@ -67,3 +67,27 @@ $dotenv->reload(); // Reload no longer accept default values
 $dotenv->has('APP_LOCALE');
 ```
 - You can now control whether to overwrite existing environment variables when loading multiple env files, via the $overwrite parameter.
+
+## v2.0.0
+
+### 🚀 Added
+- **JSON File Support** — Load environment variables from structured `.json` files.
+- **Custom Loader Registry** — Add support for user-defined loaders (e.g., YAML, XML).
+- **Static Access** — Access env values directly using `Env::get()` or `Env::group()`.
+- **Safe Loading** — Use `safeLoad()` to avoid exceptions on missing or malformed files.
+- **Multiple File Support** — Load multiple `.env` and `.json` files in defined order.
+- **Caching** — Enable in-memory caching for performance using `cache: true`.
+- **LoaderRegistry** — Convention-based class resolution for parsers like `JsonParser`.
+
+### 🛠️ Changed
+- `Env::create()` no longer loads `.env` by default — use `->load()` explicitly.
+- Parser resolution now follows a naming convention (`JsonParser`, `YamlParser`, etc.).
+- Parser must implement `ParserInterface` and be registered for custom loaders.
+
+### ⚠️ Breaking Changes
+- The legacy `$dotenv = new Dotenv(...)->load()` style is replaced by `Env::create(...)->load()`.
+- Parser resolution and loader registration are now required for custom file formats.
+
+### ✅ Internal Improvements
+- Improved performance by using `fopen()` instead of `file()` for reading files.
+- Cleaner architecture with `BaseLoader`, `LoaderInterface`, and `LoaderRegistry`.

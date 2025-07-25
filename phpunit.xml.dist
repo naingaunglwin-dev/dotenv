@@ -2,14 +2,14 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
-         cacheDirectory=".phpunit.cache"
-         executionOrder="depends,defects"
-         beStrictAboutCoverageMetadata="true"
+         cacheDirectory="phpunit/.phpunit.cache"
+         backupGlobals="false"
          beStrictAboutOutputDuringTests="true"
-         displayDetailsOnPhpunitDeprecations="true"
-         failOnPhpunitDeprecation="true"
+         colors="true"
+         columns="max"
          failOnRisky="true"
-         failOnWarning="true">
+         failOnWarning="true"
+         displayDetailsOnAllIssues="true">
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>
@@ -17,11 +17,10 @@
     </testsuites>
     <coverage includeUncoveredFiles="true"
               pathCoverage="false"
-              ignoreDeprecatedCodeUnits="true"
-              disableCodeCoverageIgnore="true">
+              ignoreDeprecatedCodeUnits="true">
         <report>
-            <html outputDirectory="build/coverage/html"/>
-            <clover outputFile="build/coverage/clover.xml"/>
+            <html outputDirectory="phpunit/coverage/html"/>
+            <clover outputFile="phpunit/coverage/clover.xml"/>
             <text outputFile="php://stdout" showUncoveredFiles="true"/>
         </report>
     </coverage>
