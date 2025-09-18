@@ -146,6 +146,15 @@ class EnvTest extends TestCase
         $env->load();
     }
 
+    public function testEnvFileLoadWithCustomPath()
+    {
+        $file = $this->createEnvFile('.env', "FOO=bar\n");
+
+        $env = Env::create(loader: new DotenvLoader('.env', resolver: new PathResolver($this->dir)));
+
+        $this->assertSame('bar', $env->get('FOO'));
+    }
+
     public function testThrowExceptionEnvLoadWithGuessLoaderForUnregisteredFileType()
     {
         $file = $this->createEnvFile('env.txt', "APP_TEST=true");
