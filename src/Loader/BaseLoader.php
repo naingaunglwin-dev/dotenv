@@ -2,6 +2,7 @@
 
 namespace NAL\Dotenv\Loader;
 
+use NAL\Dotenv\Exceptions\UnableToOpenFileException;
 use NAL\Dotenv\Parser\ParserInterface;
 use NAL\Dotenv\PathResolver;
 
@@ -54,7 +55,15 @@ abstract class BaseLoader implements LoaderInterface
      */
     protected function resolveFiles(): array
     {
-        return array_map(fn ($file) => $this->resolver->resolve($file), $this->files);
+        return array_map(function ($file) {
+            $file = $this->resolver->resolve($file);
+
+            if (!is_file($file) || !is_readable($file)) {
+                throw new UnableToOpenFileException($file);
+            }
+
+            return $file;
+        }, $this->files);
     }
 
     /**

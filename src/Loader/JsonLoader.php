@@ -46,7 +46,7 @@ class JsonLoader extends BaseLoader
             $handle = @fopen($file, 'r');
 
             if ($handle === false) {
-                throw new UnableToOpenFileException($file);
+                throw new UnableToOpenFileException($file); // @codeCoverageIgnore
             }
 
             $content = fread($handle, filesize($file));
