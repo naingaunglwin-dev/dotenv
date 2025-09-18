@@ -107,6 +107,10 @@ class PathResolver
      */
     public static function normalize(string $path): string
     {
+        if (self::isAbsolute($path)) {
+            return str_replace(['/', '\\'], self::DS, $path);
+        }
+
         return trim(str_replace(['/', '\\'], self::DS, $path), self::DS);
     }
 }
